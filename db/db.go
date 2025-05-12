@@ -1,26 +1,31 @@
 package db
 
 import (
-	"fmt"
 	"log"
+	"os"
 
+	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
 
-func Connect() {
-	dsn := "user=postgres password=jeetu@9712 dbname=echoDB sslmode=disable port=5433"
-	var err error
+func Init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	dsn := os.Getenv("DATABASE_URL")
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatal("Failed to connect to the database:", err)
+		log.Fatal("Failed to connect to database:", err)
 	}
-	fmt.Println("Connected to PostgreSQL using GORM!")
-	// Automatically create tables based on your structs
-	err = DB.AutoMigrate(&User{}, &Message{})
+
+	// Auto-migrate your User model
+	err = DB.AutoMigrate(&User{})
 	if err != nil {
-		log.Fatal("Failed to migrate database:", err)
+		log.Fatal("Auto migration failed:", err)
 	}
 }
