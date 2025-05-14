@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #6e7dff, #ff7be3);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .chat-container {
+            background: #fff;
+            border-radius: 20px;
+            width: 420px;
+            max-width: 95%;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        .header {
+            background: linear-gradient(90deg, #4e7dff, #00b894);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-size: 1.8rem;
+            border-radius: 20px 20px 0 0;
+            position: relative;
+        }
+
+        .header:after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #fff;
+        }
+
+        .messages-box {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #f4f6ff;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .message {
+            background-color: #f1f1f1;
+            border-radius: 25px;
+            padding: 12px 16px;
+            margin: 8px 0;
+            max-width: 80%;
+            font-size: 1.1rem;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .message.user {
+            background-color: #d1e7ff;
+            align-self: flex-end;
+        }
+
+        .input-container {
+            display: flex;
+            margin: 15px;
+        }
+
+        .text-input {
+            flex: 1;
+            padding: 14px 18px;
+            border: 2px solid #ddd;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            outline: none;
+            margin-right: 15px;
+            transition: border-color 0.3s;
+            background-color: #f9f9f9;
+        }
+
+        .text-input:focus {
+            border-color: #4e7dff;
+        }
+
+        .send-btn {
+            background-color: #00b894;
+            color: white;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: background-color 0.3s;
+        }
+
+        .send-btn:hover {
+            background-color: #00a06f;
+        }
+
+        .send-btn:disabled {
+            background-color: #d1e7ff;
+            cursor: not-allowed;
+        }
+
+        .connect-btn {
+            background-color: #4e7dff;
+            color: white;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: background-color 0.3s;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .connect-btn:hover {
+            background-color: #3c64d1;
+        }
+
+        .connect-btn:disabled {
+            background-color: #b0c4de;
+            cursor: not-allowed;
+        }
+
+        .message-spinner {
+            display: none;
+            text-align: center;
+            font-size: 1.2rem;
+            color: #ff7be3;
+        }
+
+        .message-spinner.active {
+            display: block;
+            margin-top: 20px;
+        }
+
+        .avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background-color: #ff7be3;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .message.user .avatar {
+            background-color: #4e7dff;
+        }
+
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="header">WebSocket Chat</div>
+        <div class="messages-box" id="messages-box">
+            <!-- Messages will appear here -->
+        </div>
+        <div class="message-spinner" id="spinner">Connecting...</div>
+        <div class="input-container">
+            <input type="text" id="message" class="text-input" placeholder="Type your message..." />
+            <button id="send-btn" class="send-btn" disabled>Send</button>
+        </div>
+        <button id="connect-btn" class="connect-btn">Connect to WebSocket</button>
+    </div>
+
+    <script>
+        let socket;
+        const messageBox = document.getElementById("messages-box");
+        const messageInput = document.getElementById("message");
+        const sendBtn = document.getElementById("send-btn");
+        const connectBtn = document.getElementById("connect-btn");
+        const spinner = document.getElementById("spinner");
+
+        function connect() {
+            socket = new WebSocket("ws://localhost:8080/ws");
+            socket.onopen = function() {
+                spinner.classList.remove("active");
+                connectBtn.disabled = true;
+                sendBtn.disabled = false;
+                console.log("Connected to WebSocket server");
+            };
+
+            socket.onmessage = function(event) {
+                const messageElement = document.createElement("div");
+                messageElement.classList.add("message");
+                const avatar = document.createElement("div");
+                avatar.classList.add("avatar");
+                const messageContent = document.createElement("span");
+                messageContent.textContent = event.data;
+
+                messageElement.appendChild(avatar);
+                messageElement.appendChild(messageContent);
+                messageBox.appendChild(messageElement);
+
+                // Anime.js Animation for messages
+                anime({
+                    targets: messageElement,
+                    translateX: [100, 0], // Slide in from the right
+                    opacity: [0, 1],
+                    duration: 500,
+                    easing: 'easeOutQuad'
+                });
+
+                messageBox.scrollTop = messageBox.scrollHeight; // Auto-scroll to latest message
+            };
+
+            socket.onclose = function() {
+                console.log("Disconnected from WebSocket server");
+                connectBtn.disabled = false;
+                sendBtn.disabled = true;
+            };
+        }
+
+        function sendMessage() {
+            const message = messageInput.value;
+            if (message.trim() === "") return;
+
+            socket.send(message); // Send message to WebSocket server
+            const userMessage = document.createElement("div");
+            userMessage.classList.add("message", "user");
+
+            const avatar = document.createElement("div");
+            avatar.classList.add("avatar");
+
+            const messageContent = document.createElement("span");
+            messageContent.textContent = message;
+
+            userMessage.appendChild(avatar);
+            userMessage.appendChild(messageContent);
+            messageBox.appendChild(userMessage);
+
+            // Anime.js Animation for user messages
+            anime({
+                targets: userMessage,
+                translateX: [100, 0], // Slide in from the right
+                opacity: [0, 1],
+                duration: 500,
+                easing: 'easeOutQuad'
+            });
+
+            messageBox.scrollTop = messageBox.scrollHeight; // Auto-scroll to latest message
+            messageInput.value = ""; // Clear input
+        }
+
+        connectBtn.addEventListener("click", () => {
+            spinner.classList.add("active");
+            connect();
+        });
+
+        sendBtn.addEventListener("click", sendMessage);
+        messageInput.addEventListener("keypress", function(e) {
+            if (e.key === "Enter") {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
