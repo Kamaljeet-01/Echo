@@ -53,3 +53,15 @@ func CheckUserCred(username string, password string) (bool, error) {
 	}
 	return true, nil //USER EXISTS AND PASSWORD MATCHES
 }
+func Deleteuser(username string) (bool, error) {
+	result := db.DB.Where("username=?", username).Delete(&db.User{})
+	if result.Error != nil {
+		return false, result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return false, nil // koi user nahi mila delete karne ke liye
+	}
+
+	return true, nil // delete successful
+}

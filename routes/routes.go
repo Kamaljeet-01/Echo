@@ -39,9 +39,9 @@ func RegisterRoutes(r *gin.Engine) {
 		c.JSON(http.StatusOK, gin.H{"message": "User registered successfully"})
 	})
 
-	//LOGIN ROUTE
-
 }
+
+// LOGIN ROUTE
 func LoginRoute(r *gin.Engine) {
 	r.POST("/login", func(c *gin.Context) {
 		var req struct {
@@ -67,4 +67,20 @@ func LoginRoute(r *gin.Engine) {
 		c.JSON(http.StatusOK, gin.H{"message": "Login successfull"})
 
 	})
+}
+
+// Delete user route
+func Deleteuser(c *gin.Context) {
+	username := c.Param("username")
+	ok, err := model.Deleteuser(username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "User deleted succesfully"})
+
 }
